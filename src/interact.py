@@ -13,7 +13,7 @@ class Play:
     - Game state management
     """
     
-    def __init__(self, game, player1=None, player2=None, name='game'):
+    def __init__(self, game, player1=None, player2=None, name='TicTacToe', mode_name=None):
         """
         Initialize the game visualization.
         
@@ -22,6 +22,7 @@ class Play:
             player1: First player (None for human, function for AI)
             player2: Second player (None for human, function for AI)
             name: Window title for the game
+            mode_name: Game mode name to display (e.g. "Human vs AI")
         """
         plt.close('all')  # Close any existing matplotlib windows
         
@@ -34,18 +35,17 @@ class Play:
         self.fig = None            # Matplotlib figure
         self.ax = None            # Matplotlib axes
         self.click_cid = None     # Click event connection ID
+        self.mode_name = mode_name # Game mode name
         self.setup_figure(name)   # Initialize the display
         self.reset()              # Reset game state
         plt.show()                # Display the game window
 
-    def setup_figure(self, name='Game'):
+    def setup_figure(self, name='TicTacToe'):
         """
         Setup the matplotlib figure and controls.
         
-        Creates:
-        - Game board grid
-        - Restart button
-        - Properly sized window based on board dimensions
+        Args:
+            name: Window title for the game (default: 'TicTacToe')
         """
         # Adjust figure size based on board dimensions
         if self.game.w * self.game.h < 25:
@@ -53,18 +53,22 @@ class Play:
         else:
             figsize = (self.game.w / 1.2, self.game.h / 1.2)
 
-        # Create and configure the figure
+        # Create and configure the figure with new title
         self.fig = plt.figure(name, figsize=figsize)
         self.fig.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
             
         # Create main game board axes
         self.ax = self.fig.add_axes([0.2, 0.2, 0.6, 0.6])
+        
+        # Add title showing game mode
+        if self.mode_name:
+            self.title = self.fig.suptitle(self.mode_name, fontsize=12, y=0.95)
 
         # Add restart button
         button_ax = self.fig.add_axes([0.35, 0.05, 0.2, 0.08])
         self.restart_button = Button(button_ax, 'Restart', 
-                                   color='lightgray',
-                                   hovercolor='gray')
+                                color='lightgray',
+                                hovercolor='gray')
         self.restart_button.label.set_color('black')
         self.restart_button.ax.set_facecolor('lightgray')
         self.restart_button.on_clicked(lambda event: self.reset())
@@ -209,6 +213,20 @@ class Play:
             locs = self.game.get_winning_loc()
             c = 'darkred' if score == 1 else 'darkblue'
             self.ax.scatter(locs[:, 0], locs[:, 1], s=500, marker='*', c=c, zorder=4)
+            
+            # Update title with winner information
+            winner = "Red" if score == 1 else "Blue"
+            if self.mode_name:
+                # Extract the player type (Human/AI/Random) for the winner
+                if score == 1:  # Red wins
+                    winner_type = self.mode_name.split("Red: ")[1].split(" vs")[0]
+                else:  # Blue wins
+                    winner_type = self.mode_name.split("Blue: ")[1]
+                self.title.set_text(f"{self.mode_name}\n{winner} ({winner_type}) Wins!")
+        else:
+            # Draw information
+            if self.mode_name:
+                self.title.set_text(f"{self.mode_name}\nDraw!")
 
         # Cleanup click handler at game end
         if self.click_cid:
@@ -225,6 +243,7 @@ class Play:
         Args:
             event: Matplotlib mouse event
         """
+        # First check if click is valid and game is still active
         if event.inaxes != self.ax or self.end:
             return
             
@@ -239,20 +258,23 @@ class Play:
 
             if succeed:
                 self.draw_move()
-            else:
-                return
-            
-            # Handle AI response if playing against AI
-            if self.player1 is not None or self.player2 is not None:
-                succeed = False
-                self.player = self.game.player
-                while not succeed:
-                    if self.game.player == 1:
-                        loc = self.player1(self.game)
-                    else:
-                        loc = self.player2(self.game)
-                    succeed = self.game.move(loc)
-                   
-                self.draw_move()
+                
+                # Check if game ended after human move
+                if self.game.score is not None:
+                    return
+                
+                # Only proceed with AI move if game is not over
+                if (self.player1 is not None or self.player2 is not None) and not self.end:
+                    succeed = False
+                    self.player = self.game.player
+                    while not succeed:
+                        if self.game.player == 1:
+                            loc = self.player1(self.game)
+                        else:
+                            loc = self.player2(self.game)
+                        succeed = self.game.move(loc)
+                
+                    self.draw_move()
+                    
         except Exception as e:
-            print(f"Error handling click: {e}")
+            print(f"Error handling click: {str(e)}")

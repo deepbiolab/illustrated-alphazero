@@ -9,7 +9,8 @@ from src.agent import MCTSAgent
 from src.environment import Environment
 from src.interact import Play
 
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+
 
 def random_player(env):
     """Simple random player with game end handling."""
@@ -18,83 +19,21 @@ def random_player(env):
     moves = list(env.available_moves())
     if not moves:  # No moves available
         return None
-    return moves[random.randint(0, len(moves)-1)]
+    return moves[random.randint(0, len(moves) - 1)]
 
-
-def create_environment(board_size=None, N=None):
-    """
-    Create game environment with either custom settings or config defaults.
-    
-    Args:
-        board_size: Optional board size (defaults to Config setting)
-        N: Optional number in a row to win (defaults to Config setting)
-    """
-    if board_size is None or N is None:
-        return Environment(**Config.ENV_SETTINGS)
-    
-    env_setting = {"size": (board_size, board_size), "N": N}
-    return Environment(**env_setting)
-
-
-def setup_gameplay(settings=None, agent=None):
-    """
-    Set up gameplay with either custom settings or defaults.
-    
-    Args:
-        settings: Optional dictionary containing game settings
-        agent: Optional pre-configured MCTSAgent instance
-    """
-    # Create environment
-    if settings:
-        env = create_environment(settings['board_size'], settings['N'])
-    else:
-        env = create_environment()
-    
-    # If no settings provided, default to human vs AI with config settings
-    if settings is None:
-        if agent is None:
-            agent = MCTSAgent(
-                env_settings=Config.ENV_SETTINGS,
-                learning_rate=Config.LEARNING_RATE,
-                weight_decay=Config.WEIGHT_DECAY
-            )
-        
-        return Play(
-            env,
-            player1=None,  # Human player
-            player2=lambda env: agent.select_action(
-                env,
-                num_simulations=Config.MCTS_SIMULATIONS,
-                temperature=Config.TEMPERATURE
-            )
-        )
-    
-    # Mode mapping for custom settings
-    MODE_MAPPING = {
-        1: ('Human vs Human', None, None),
-        2: ('Human vs Random', None, random_player),
-        3: ('Human vs AI', None, create_ai_player(settings['model_path'])),
-        4: ('Random vs AI', random_player, create_ai_player(settings['model_path']))
-    }
-    
-    mode_name, player1, player2 = MODE_MAPPING[settings['mode']]
-    print(f"\nStarting game in {mode_name} mode...")
-    
-    return Play(env, player1=player1, player2=player2)
 
 def create_ai_player(model_path):
     """Create an AI player using the trained model."""
-    # Create agent with settings from config
     agent = MCTSAgent(
         env_settings=Config.ENV_SETTINGS,
         learning_rate=Config.LEARNING_RATE,
-        weight_decay=Config.WEIGHT_DECAY
+        weight_decay=Config.WEIGHT_DECAY,
     )
-    
+
     if Path(model_path).exists():
         agent.load_model(model_path)
         print(f"Loaded AI model from {model_path}")
-        
+
         def ai_player(env):
             """AI player with game end handling."""
             if env.score is not None:  # Game has ended
@@ -102,60 +41,58 @@ def create_ai_player(model_path):
             return agent.select_action(
                 env,
                 num_simulations=Config.MCTS_SIMULATIONS,
-                temperature=Config.TEMPERATURE
+                temperature=Config.TEMPERATURE,
             )
-        
+
         return ai_player
     else:
         print(f"No model found at {model_path}, falling back to random player")
         return random_player
 
+
+def setup_gameplay(mode=None):
+    """
+    Set up gameplay with config settings.
+
+    Args:
+        mode: Game mode (1-4)
+    """
+    env = Environment(**Config.ENV_SETTINGS)
+
+    # Mode mapping with lazy initialization
+    def get_mode_config(mode):
+        if mode == 1:
+            return "Red: Human vs Blue: Human", None, None
+        elif mode == 2:
+            return "Red: Human vs Blue: Random", None, random_player
+        elif mode == 3:
+            return "Red: Human vs Blue: AI", None, create_ai_player(str(Config.BEST_MODEL_PATH))
+        elif mode == 4:
+            return "Red: AI vs Blue: AI", create_ai_player(str(Config.BEST_MODEL_PATH)), create_ai_player(str(Config.BEST_MODEL_PATH))
+
+    mode_name, player1, player2 = get_mode_config(mode)
+    print(f"\nStarting game in {mode_name} mode...")
+
+    return Play(env, player1=player1, player2=player2, mode_name=mode_name)
+
+
 def get_user_input():
-    """Get game settings from user input."""
+    """Get game mode from user input."""
     print("\nAvailable Game Modes:")
-    print("1: Human (Red) vs Human (Blue)")
-    print("2: Human (Red) vs Random (Blue)")
-    print("3: Human (Red) vs AI (Blue)")
-    print("4: Random (Red) vs AI (Blue)")
-    
+    print("1: Red: Human vs Blue: Human")
+    print("2: Red: Human vs Blue: Random")
+    print("3: Red: Human vs Blue: AI")
+    print("4: Red: AI vs Blue: AI")
+
     while True:
         try:
             mode = int(input("\nSelect game mode (1-4): "))
             if mode not in [1, 2, 3, 4]:
                 print("Invalid mode! Please select 1-4.")
                 continue
-            
-            # Get default values from config
-            default_size = Config.ENV_SETTINGS['size'][0]
-            default_n = Config.ENV_SETTINGS['N']
-            
-            # Handle board size input
-            size_input = input(f"Enter board size (default {default_size}): ")
-            board_size = int(size_input) if size_input.strip() else default_size
-            if board_size < 3:
-                print("Board size must be at least 3!")
-                continue
-
-            # Handle connect N input
-            n_input = input(f"Enter number in a row to win (default {default_n}): ")
-            connect_n = int(n_input) if n_input.strip() else default_n
-            if connect_n < 3:
-                print("Connect N must be at least 3!")
-                continue
-            
-            if connect_n > board_size:
-                print("Number in a row cannot be larger than board size!")
-                continue
-                
-            return {
-                'mode': mode,
-                'board_size': board_size,
-                'N': connect_n,
-                'model_path': str(Config.BEST_MODEL_PATH)
-            }
-            
+            return mode
         except ValueError:
-            print("Invalid input! Please enter numbers only.")
+            print("Invalid input! Please enter a number between 1 and 4.")
 
 
 def run_interactive_game(game):
@@ -172,16 +109,17 @@ def run_interactive_game(game):
     except Exception as e:
         print(f"\nError during gameplay: {e}")
 
+
 if __name__ == "__main__":
     try:
-        # Get game settings from user
-        settings = get_user_input()
-        
+        # Get game mode from user
+        mode = get_user_input()
+
         # Setup and run game
-        game = setup_gameplay(settings=settings)
+        game = setup_gameplay(mode=mode)
         print("Game started! Close the window to exit.")
         run_interactive_game(game)
-        
+
     except KeyboardInterrupt:
         print("\nGame interrupted by user")
         sys.exit(0)

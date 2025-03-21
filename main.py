@@ -4,7 +4,7 @@ from collections import deque
 
 from src.config import Config
 from src.agent import MCTSAgent
-from src.plots import plot_losses
+from src.utils import plot_losses
 
 
 

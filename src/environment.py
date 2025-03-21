@@ -1,84 +1,8 @@
 import numpy as np
 
-def get_runs(v, i):
-    """
-    Find continuous runs of a value in a vector.
-    
-    Example:
-    v = [0,0,1,1,1,0,0], i = 1
-    Returns: 
-        starts = [2]    # where runs start
-        ends = [5]      # where runs end
-        lengths = [3]   # length of runs
-    """
-    bounded = np.hstack(([0], (v == i).astype(int), [0]))
-    difs = np.diff(bounded)
-    (starts,) = np.where(difs > 0)
-    (ends,) = np.where(difs < 0)
-    return starts, ends, ends - starts
-
-
-def in_a_row(v, N, i):
-    """
-    Check if vector contains N consecutive occurrences of i.
-    
-    Example:
-    v = [0,1,1,1,0], N = 3, i = 1
-    Returns: True (has 3 ones in a row)
-    """
-    if len(v) < N:
-        return False
-    else:
-        _, _, total = get_runs(v, i)
-        return np.any(total >= N)
-
-
-def get_lines(matrix, loc):
-    """
-    Get all lines (horizontal, vertical, diagonal) passing through loc.
-    
-    Example for 3x3 matrix with loc=(1,1):
-    Returns 4 lines:
-    - horizontal: matrix[1,:]
-    - vertical: matrix[:,1]
-    - diagonal right: top-left to bottom-right diagonal
-    - diagonal left: top-right to bottom-left diagonal
-    """
-    i, j = loc
-    flat = matrix.reshape(-1, *matrix.shape[2:])
-
-    w = matrix.shape[0]
-    h = matrix.shape[1]
-
-    def flat_pos(pos):
-        return pos[0] * h + pos[1]
-
-    pos = flat_pos((i, j))
-
-    # Calculate complementary positions
-    ic = w - 1 - i
-    jc = h - 1 - j
-
-    # Calculate diagonal endpoints
-    tl = (i - j, 0) if i > j else (0, j - i)
-    tl = flat_pos(tl)
-
-    bl = (w - 1 - (ic - j), 0) if ic > j else (w - 1, j - ic)
-    bl = flat_pos(bl)
-
-    tr = (i - jc, h - 1) if i > jc else (0, h - 1 - (jc - i))
-    tr = flat_pos(tr)
-
-    br = (w - 1 - (ic - jc), h - 1) if ic > jc else (w - 1, h - 1 - (jc - ic))
-    br = flat_pos(br)
-
-    # Extract lines
-    hor = matrix[:, j]  # Horizontal line
-    ver = matrix[i, :]  # Vertical line
-    diag_right = np.concatenate([flat[tl : pos : h + 1], flat[pos : br + 1 : h + 1]])
-    diag_left = np.concatenate([flat[tr : pos : h - 1], flat[pos : bl + 1 : h - 1]])
-
-    return hor, ver, diag_right, diag_left
+from .utils import (
+	has_consecutive_values, find_consecutive_sequences, get_winning_lines
+)
 
 
 class Environment:
@@ -155,11 +79,11 @@ class Environment:
             return None
 
         i, j = self.last_move
-        hor, ver, diag_right, diag_left = get_lines(self.state, (i, j))
+        hor, ver, diag_right, diag_left = get_winning_lines(self.state, (i, j))
 
         # Check all lines through last move for winner
         for line in [ver, hor, diag_right, diag_left]:
-            if in_a_row(line, self.N, self.player):
+            if has_consecutive_values(line, self.N, self.player):
                 return self.player
 
         # Check for draw (board full)
@@ -180,16 +104,16 @@ class Environment:
             return []
 
         loc = self.last_move
-        hor, ver, diag_right, diag_left = get_lines(self.state, loc)
+        hor, ver, diag_right, diag_left = get_winning_lines(self.state, loc)
         ind = np.indices(self.state.shape)
         ind = np.moveaxis(ind, 0, -1)
-        hor_ind, ver_ind, diag_right_ind, diag_left_ind = get_lines(ind, loc)
+        hor_ind, ver_ind, diag_right_ind, diag_left_ind = get_winning_lines(ind, loc)
 
         pieces = [hor, ver, diag_right, diag_left]
         indices = [hor_ind, ver_ind, diag_right_ind, diag_left_ind]
 
         for line, index in zip(pieces, indices):
-            starts, ends, runs = get_runs(line, self.player)
+            starts, ends, runs = find_consecutive_sequences(line, self.player)
 
             winning = runs >= self.N
             if not np.any(winning):
