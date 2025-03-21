@@ -1,4 +1,3 @@
-import numpy as np
 from copy import copy
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -16,13 +15,6 @@ class Play:
     def __init__(self, game, player1=None, player2=None, name='TicTacToe', mode_name=None):
         """
         Initialize the game visualization.
-        
-        Args:
-            game: The game environment instance
-            player1: First player (None for human, function for AI)
-            player2: Second player (None for human, function for AI)
-            name: Window title for the game
-            mode_name: Game mode name to display (e.g. "Human vs AI")
         """
         plt.close('all')  # Close any existing matplotlib windows
         
@@ -36,6 +28,7 @@ class Play:
         self.ax = None            # Matplotlib axes
         self.click_cid = None     # Click event connection ID
         self.mode_name = mode_name # Game mode name
+        self.anim = None          # Animation object
         self.setup_figure(name)   # Initialize the display
         self.reset()              # Reset game state
         plt.show()                # Display the game window
@@ -62,31 +55,38 @@ class Play:
         
         # Add title showing game mode
         if self.mode_name:
-            self.title = self.fig.suptitle(self.mode_name, fontsize=12, y=0.95)
+            self.title = self.fig.suptitle(self.mode_name, fontsize=10, y=0.95)
 
         # Add restart button
-        button_ax = self.fig.add_axes([0.35, 0.05, 0.2, 0.08])
+        button_ax = self.fig.add_axes([0.4, 0.05, 0.2, 0.08])
         self.restart_button = Button(button_ax, 'Restart', 
-                                color='lightgray',
+                                color='black',
                                 hovercolor='gray')
-        self.restart_button.label.set_color('black')
-        self.restart_button.ax.set_facecolor('lightgray')
+        self.restart_button.label.set_color('white')
+        self.restart_button.ax.set_facecolor('black')
         self.restart_button.on_clicked(lambda event: self.reset())
 
     def reset(self):
-        """
-        Reset the game to initial state.
-        
-        - Resets game state
-        - Clears board
-        - Resets event handlers
-        - Initializes appropriate game mode (AI-AI or Human-AI)
-        """
+        """Reset the game to initial state."""
+        # Stop any existing animation
+        if hasattr(self, 'anim') and self.anim is not None:
+            try:
+                if hasattr(self.anim, 'event_source') and self.anim.event_source is not None:
+                    self.anim.event_source.stop()
+            except Exception as e:
+                print(f"Warning: Could not stop animation: {e}")
+            finally:
+                self.anim = None
+                    
         self.game = copy(self.original_game)
         if self.click_cid and self.fig:
             self.fig.canvas.mpl_disconnect(self.click_cid)
         self.click_cid = None
         self.end = False
+        
+        # Reset the title to original mode name
+        if self.mode_name and hasattr(self, 'title'):
+            self.title.set_text(self.mode_name)
         
         self.ax.clear()
         self.setup_grid()
@@ -110,7 +110,7 @@ class Play:
             self.click_cid = self.fig.canvas.mpl_connect('button_press_event', self.click)
         
         self.fig.canvas.draw_idle()
-        
+
     def setup_grid(self):
         """
         Setup the game board grid.
@@ -121,22 +121,27 @@ class Play:
         - Proper scaling and aspect ratio
         """
         w, h = self.game.size
-        self.ax.set_xlim([-0.5, w - 0.5])
-        self.ax.set_ylim([-0.5, h - 0.5])
         
-        # Create grid lines
-        self.ax.grid(True, which='major', linestyle='-', color='black', linewidth=2.0)
-        self.ax.set_xticks(np.arange(-0.5, w, 1))
-        self.ax.set_yticks(np.arange(-0.5, h, 1))
+        # Set the exact limits without any margin
+        self.ax.set_xlim([0, w])
+        self.ax.set_ylim([0, h])
         
-        # Remove axis labels
-        self.ax.set_xticklabels([])
-        self.ax.set_yticklabels([])
+        # Draw the grid manually for consistent line width
+        # Vertical lines
+        for i in range(w+1):
+            self.ax.axvline(x=i, color='black', linewidth=2.0)
+        # Horizontal lines
+        for i in range(h+1):
+            self.ax.axhline(y=i, color='black', linewidth=2.0)
+        
+        # Remove ticks completely
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
         
         # Configure display properties
         self.ax.format_coord = lambda x, y: ''
         self.ax.set_aspect('equal')
-    
+
         # Remove border spines
         for loc in ['top', 'right', 'bottom', 'left']:
             self.ax.spines[loc].set_visible(False)
@@ -151,7 +156,7 @@ class Play:
             self.fig, 
             self.draw_move, 
             frames=self.move_generator,
-            interval=500,  # 500ms between moves
+            interval=250,  # 500ms between moves
             repeat=False,
             save_count=max_frames,
             cache_frame_data=False
@@ -184,12 +189,14 @@ class Play:
         
         Args:
             move: (x, y) coordinates of the move to draw
-                 If None, uses last move from game state
+                If None, uses last move from game state
         """
         if self.end:
             return
         
         i, j = self.game.last_move if move is None else move
+        # Add 0.5 to center the pieces in the grid cells
+        i, j = i + 0.5, j + 0.5
         # Color based on player (red for player 1, blue for player 2)
         c = 'salmon' if self.player == 1 else 'lightskyblue'
         self.ax.scatter(i, j, s=800, marker='o', zorder=3, c=c)
@@ -199,12 +206,6 @@ class Play:
         self.fig.canvas.flush_events()
 
     def draw_winner(self, score):
-        """
-        Draw winning moves and handle game end.
-        
-        Args:
-            score: Game score (-1, 0, or 1)
-        """
         if score is None:
             return
         
@@ -212,7 +213,10 @@ class Play:
         if score == -1 or score == 1:
             locs = self.game.get_winning_loc()
             c = 'darkred' if score == 1 else 'darkblue'
-            self.ax.scatter(locs[:, 0], locs[:, 1], s=500, marker='*', c=c, zorder=4)
+            # Add 0.5 to center the stars
+            adjusted_locs = locs + 0.5
+            self.ax.scatter(adjusted_locs[:, 0], adjusted_locs[:, 1], 
+                        s=500, marker='*', c=c, zorder=4)
             
             # Update title with winner information
             winner = "Red" if score == 1 else "Blue"
@@ -249,7 +253,10 @@ class Play:
             
         try:
             # Convert click coordinates to board position
-            loc = (int(round(event.xdata)), int(round(event.ydata)))
+            # Subtract 0.5 to compensate for the centered grid
+            x = event.xdata - 0.5
+            y = event.ydata - 0.5
+            loc = (int(round(x)), int(round(y)))
             if not (0 <= loc[0] < self.game.w and 0 <= loc[1] < self.game.h):
                 return
                 
