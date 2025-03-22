@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 from copy import copy
+from typing import Dict, Tuple, Any
 
 from .search import MonteCarloTree
 from .network import Policy
@@ -16,7 +17,8 @@ class MCTSAgent:
     - MCTS for look-ahead search
     - Self-play for training
     """
-    def __init__(self, env_settings, learning_rate=0.01, weight_decay=1.0e-4):
+    def __init__(self, env_settings: Dict[str, Any], learning_rate: float = 0.01, 
+                 weight_decay: float = 1.0e-4) -> None:
         """
         Initialize the MCTS agent.
         
@@ -41,7 +43,8 @@ class MCTSAgent:
             weight_decay=weight_decay
         )
 
-    def select_action(self, env, num_simulations=50, temperature=0.1):
+    def select_action(self, env: Environment, num_simulations: int = 50, 
+                     temperature: float = 0.1) -> Tuple[int, int]:
         """
         Select an action using MCTS with neural network policy guidance.
         
@@ -71,7 +74,7 @@ class MCTSAgent:
         next_node, _ = root_node.next(temperature=temperature)
         return next_node.game.last_move
 
-    def learn(self, num_simulations=100):
+    def learn(self, num_simulations: int = 100) -> Tuple[float, float]:
         """
         Perform one episode of learning through self-play.
         
@@ -101,8 +104,8 @@ class MCTSAgent:
         """
         # Initialize new game and tracking variables
         search_tree = MonteCarloTree(Environment(**self.env_settings))
-        value_terms = []    # List to store value predictions: [0.7, 0.3, ...]
-        policy_terms = []   # List to store policy losses for each move
+        value_terms: list[torch.Tensor] = []    # List to store value predictions: [0.7, 0.3, ...]
+        policy_terms: list[torch.Tensor] = []   # List to store policy losses for each move
 
         # game loop - continue until game ends
         while search_tree.outcome is None:
@@ -151,7 +154,7 @@ class MCTSAgent:
 
         return outcome, float(loss)
 
-    def save_model(self, path):
+    def save_model(self, path: str) -> None:
         """
         Save the policy network to a file.
         
@@ -159,7 +162,7 @@ class MCTSAgent:
         """
         torch.save(self.policy.state_dict(), path)
 
-    def load_model(self, path):
+    def load_model(self, path: str) -> None:
         """
         Load the policy network from a file.
         
