@@ -4,7 +4,7 @@ A Python implementation of the AlphaZero algorithm for board games, with detaile
 
 A detailed blog-style explanation of the AlphaZero algorithm can be found [here](blog/dive-into-alphazero.pdf).
 
-<img src="./assets/blog-cover.png">
+<img src="./assets/blog-cover.png" style="zoom: 50%;" >
 
 
 ## Overview
