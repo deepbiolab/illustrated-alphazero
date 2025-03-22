@@ -2,6 +2,22 @@
 
 A Python implementation of the AlphaZero algorithm for board games, with detailed illustrations and explanations.
 
+<div style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap;">
+  <div style="display:flex; flex-direction:column; margin-right:20px;">
+  	<div style="text-align:center; margin-bottom:20px;">
+  		<img src="./assets/3x3-game-ai-ai.gif" style="width:200px; height:200px; object-fit:contain;" />
+   	</div>
+  	<div style="text-align:center;">
+      <img src="./assets/3x3-game-human-ai.gif" style="width:200px; height:200px; object-fit:contain;" />
+	</div>
+    <p style="text-align:center; margin-top:10px;"><strong>TicTacToe (3×3)</strong></p>
+  </div>
+  <div style="text-align:center;">
+    <img src="./assets/7x4-game.gif" style="width:400px; height:430px; object-fit:contain;" />
+    <p><strong>Connect Four (7×6)</strong></p>
+  </div>
+</div>
+
 A detailed blog-style explanation of the AlphaZero algorithm can be found [here](blog/dive-into-alphazero.pdf).
 
 <img src="./assets/blog-cover.png" style="zoom: 50%;" >
@@ -67,19 +83,6 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Configuration
-
-Key parameters in `config.py`:
-
-```python
-ENV_SETTINGS = {
-	"size": (3, 3),  		# Board size
-	"N": 3,          		# Number in a row to win
-}
-NUM_EPISODES = 400          # Total training episodes
-SIMULATIONS_PER_MOVE = 100  # MCTS simulations per move
-...
-```
 
 ### Training AlphaZero
 
@@ -88,10 +91,6 @@ python main.py
 ```
 
 The `main.py` script trains the AlphaZero model using the specified configuration. It simulates self-play games, collects data, and trains the neural network.
-
-- Evaluating model performance during training
-
-![loss](./assets/training_loss.png)
 
 ### Playing Against Trained Model
 
@@ -115,6 +114,64 @@ Available Game Modes:
 
 Select game mode (1-4): 
 ```
+
+### Configuration
+
+Key parameters in `config.py`, here is an example for `3 x 3`, `7 x 6` board.
+
+#### Settings for `3 x 3` board and connect `3` to win
+
+- Environment settings
+```python
+ENV_SETTINGS = {
+	"size": (3, 3),  # Board size
+	"N": 3,          # Number in a row to win
+}
+
+# Agent settings
+LEARNING_RATE = 0.01
+WEIGHT_DECAY = 1.0e-4
+
+# Training settings
+NUM_EPISODES = 400
+SIMULATIONS_PER_MOVE = 100
+EVAL_FREQUENCY = 50  # Episodes between evaluations
+
+# MCTS settings
+MCTS_SIMULATIONS = 50  # Number of MCTS simulations for action selection
+TEMPERATURE = 0.1     # Temperature for move selection
+...
+```
+- Evaluating model performance during training
+![loss](./assets/3x3-training-loss.png)
+
+#### Settings for `7 x 6` board and connect `4` to win
+
+- Environment settings
+```python
+ENV_SETTINGS = {
+	"size": (7, 6),  # Board size
+	"N": 4,          # Number in a row to win
+}
+
+# Agent settings
+LEARNING_RATE = 0.01
+WEIGHT_DECAY = 1.0e-4
+
+# Training settings
+NUM_EPISODES = 1000
+SIMULATIONS_PER_MOVE = 150
+EVAL_FREQUENCY = 50  # Episodes between evaluations
+
+# MCTS settings
+MCTS_SIMULATIONS = 150  # Number of MCTS simulations for action selection
+TEMPERATURE = 0.2     # Temperature for move selection
+...
+```
+
+- Evaluating model performance during training
+![loss](./assets/7x4-training-loss.png)
+
 
 ## Contributing
 
