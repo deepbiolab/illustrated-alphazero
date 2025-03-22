@@ -2,21 +2,20 @@
 
 A Python implementation of the AlphaZero algorithm for board games, with detailed illustrations and explanations.
 
-<div style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap;">
-  <div style="display:flex; flex-direction:column; margin-right:20px;">
-  	<div style="text-align:center; margin-bottom:20px;">
-  		<img src="./assets/3x3-game-ai-ai.gif" style="width:200px; height:200px; object-fit:contain;" />
-   	</div>
-  	<div style="text-align:center;">
-      <img src="./assets/3x3-game-human-ai.gif" style="width:200px; height:200px; object-fit:contain;" />
-	</div>
-    <p style="text-align:center; margin-top:10px;"><strong>TicTacToe (3×3)</strong></p>
-  </div>
-  <div style="text-align:center;">
-    <img src="./assets/7x4-game.gif" style="width:400px; height:430px; object-fit:contain;" />
-    <p><strong>Connect Four (7×6)</strong></p>
-  </div>
-</div>
+
+<table>
+  <tr>
+    <td valign="top" width="300px">
+      <p align="center"><img src="./assets/3x3-game-ai-ai.gif" width="200"></p>
+      <p align="center"><img src="./assets/3x3-game-human-ai.gif" width="200"></p>
+      <p align="center"><strong>TicTacToe (3×3)</strong></p>
+    </td>
+    <td width="500px">
+      <p align="center"><img src="./assets/7x4-game.gif" width="500"></p>
+      <p align="center"><strong>Connect Four (7×6)</strong></p>
+    </td>
+  </tr>
+</table>
 
 A detailed blog-style explanation of the AlphaZero algorithm can be found [here](blog/dive-into-alphazero.pdf).
 
