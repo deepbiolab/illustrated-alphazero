@@ -114,38 +114,29 @@ class MCTSAgent:
             current_player = search_tree.game.player
             
             # Make move and get training targets
-            # Returns tuple containing:
-            # - value: Final game outcome (only known after game ends)
-            # - nn_value: Network's current value prediction (-1 to +1)
-            # - policy_probs: Target policy from MCTS visit counts [0.8, 0.2, ...]
-            # - nn_policy: Network's policy prediction [0.75, 0.25, ...]
-            search_tree, (value, nn_value, policy_probs, nn_policy) = search_tree.next()
-            search_tree.detach_mother()  # Memory optimization
+            search_tree, (value, pred_value, mcts_probs, prior_probs) = search_tree.next()
+            search_tree.detach_parent()  # Memory optimization
 
             # Compute losses for this move
             # Policy loss calculation
-            # Example: policy_probs = [0.8, 0.2], nn_policy = [0.75, 0.25]
-            log_probs = torch.log(nn_policy) * policy_probs  # Element-wise multiplication
+            log_probs = torch.log(prior_probs) * mcts_probs
             
             # Importance sampling correction term
             constant = torch.where(
-                policy_probs > 0,  # Where MCTS visited
-                policy_probs * torch.log(policy_probs),  # KL divergence term
-                torch.tensor(0.0)  # Zero for unvisited moves
+                mcts_probs > 0,                         # Where MCTS visited
+                mcts_probs * torch.log(mcts_probs),     # KL divergence term
+                torch.tensor(0.0)                       # Zero for unvisited moves
             )
             
             # Store policy loss for this move
             policy_terms.append(-torch.sum(log_probs - constant))
             
             # Store value prediction from current player's perspective
-            # Example: if nn_value = 0.7 and current_player = -1
-            # Then value_terms gets -0.7
-            value_terms.append(nn_value * current_player)
+            value_terms.append(pred_value * current_player)
 
         # Game is finished - compute total loss
         outcome = search_tree.outcome  # Final result: +1, -1, or 0
         
-        # Combine all losses:
         # - Value loss: (predicted - actual)^2 for each move
         # - Policy loss: Sum of cross entropy losses
         loss = torch.sum(
