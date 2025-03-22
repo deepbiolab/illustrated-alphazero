@@ -17,10 +17,6 @@ A Python implementation of the AlphaZero algorithm for board games, with detaile
   </tr>
 </table>
 
-A detailed blog-style explanation of the AlphaZero algorithm can be found [here](blog/dive-into-alphazero.pdf).
-
-<img src="./assets/blog-cover.png" style="zoom: 50%;" >
-
 
 ## Overview
 
@@ -170,6 +166,13 @@ TEMPERATURE = 0.2     # Temperature for move selection
 
 - Evaluating model performance during training
 ![loss](./assets/7x4-training-loss.png)
+
+
+## Blog
+
+A detailed blog-style explanation of the AlphaZero algorithm can be found [here](blog/dive-into-alphazero.pdf).
+
+<img src="./assets/blog-cover.png" style="zoom: 50%;" >
 
 
 ## Contributing
